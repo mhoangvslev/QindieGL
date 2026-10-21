@@ -430,6 +430,7 @@ copy $(TargetDir)$(ProjectName).ini $(ProjectDir)..\bin\$(Configuration).$(Platf
     <ClCompile Include="..\code\d3d_texgen.cpp" />
     <ClCompile Include="..\code\d3d_texture.cpp" />
     <ClCompile Include="..\code\d3d_wrapper.cpp" />
+    <ClCompile Include="..\code\d3d_trace.cpp" />
     <ClCompile Include="..\code\rmx_gen.cpp" />
     <ClCompile Include="..\code\rmx_light.cpp" />
     <ClCompile Include="..\code\win_imgui.cpp" />

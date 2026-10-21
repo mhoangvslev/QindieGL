@@ -20,6 +20,7 @@
 ***************************************************************************/
 #include "d3d_wrapper.hpp"
 #include "d3d_global.hpp"
+#include "d3d_trace.hpp"
 #include "d3d_state.hpp"
 #include "d3d_matrix_stack.hpp"
 #include "d3d_matrix_detection.hpp"
@@ -83,6 +84,7 @@ static inline void CheckTexCoordOffset_Hack( bool ortho )
 
 OPENGL_API void WINAPI glMatrixMode( GLenum mode )
 {
+	QTRACE_GL( "MatrixMode(0x%x)", mode );
 	if( D3DState.TransformState.matrixMode != mode )
 	{
 		D3DState.TransformState.matrixMode = mode;
@@ -93,6 +95,7 @@ OPENGL_API void WINAPI glMatrixMode( GLenum mode )
 
 OPENGL_API void WINAPI glLoadIdentity()
 {
+	QTRACE_GL( "LoadIdentity" );
 	if( !D3DState.currentMatrixStack ) return;
 	D3DState.currentMatrixStack->load_identity( );
 	*D3DState.currentMatrixModified = true;
@@ -158,6 +161,7 @@ static void ProjectionMatrix_GLtoD3D( FLOAT *m )
 
 OPENGL_API void WINAPI glLoadMatrixf( const GLfloat *m )
 {
+	QTRACE_GL( "LoadMatrixf [%g %g %g %g | %g %g %g %g | %g %g %g %g | %g %g %g %g]", m[0],m[1],m[2],m[3],m[4],m[5],m[6],m[7],m[8],m[9],m[10],m[11],m[12],m[13],m[14],m[15] );
 	if( !D3DState.currentMatrixStack ) return;
 	bool b2Dproj = false;
 	if( D3DGlobal.settings.projectionFix ) {
@@ -208,6 +212,7 @@ OPENGL_API void WINAPI glLoadMatrixd( const GLdouble *m )
 }
 OPENGL_API void WINAPI glMultMatrixf( const GLfloat *m )
 {
+	QTRACE_GL( "MultMatrixf [%g %g %g %g | %g %g %g %g | %g %g %g %g | %g %g %g %g]", m[0],m[1],m[2],m[3],m[4],m[5],m[6],m[7],m[8],m[9],m[10],m[11],m[12],m[13],m[14],m[15] );
 	if( !D3DState.currentMatrixStack ) return;
 	D3DState.currentMatrixStack->multiply( m );
 	*D3DState.currentMatrixModified = true;
@@ -315,6 +320,7 @@ OPENGL_API void WINAPI glMultTransposeMatrixd( const GLdouble *m )
 }
 OPENGL_API void WINAPI glFrustum( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar )
 {
+	QTRACE_GL( "Frustum(%g, %g, %g, %g, %g, %g)", left, right, bottom, top, zNear, zFar );
 	if( !D3DState.currentMatrixStack ) return;
 	D3DXMATRIX m;
 	D3DXMatrixPerspectiveOffCenterRH( &m,(FLOAT)left,(FLOAT)right,(FLOAT)bottom,(FLOAT)top,(FLOAT)zNear,(FLOAT)zFar );
@@ -324,6 +330,7 @@ OPENGL_API void WINAPI glFrustum( GLdouble left, GLdouble right, GLdouble bottom
 }
 OPENGL_API void WINAPI glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar )
 {
+	QTRACE_GL( "Ortho(%g, %g, %g, %g, %g, %g)", left, right, bottom, top, zNear, zFar );
 	if( !D3DState.currentMatrixStack ) return;
 	D3DXMATRIX m;
 	D3DXMatrixOrthoOffCenterRH( &m,(FLOAT)left + D3DState.viewport_offX,
@@ -337,6 +344,7 @@ OPENGL_API void WINAPI glOrtho( GLdouble left, GLdouble right, GLdouble bottom, 
 }
 OPENGL_API void WINAPI glPopMatrix( void )
 {
+	QTRACE_GL( "PopMatrix" );
 	if( !D3DState.currentMatrixStack ) return;
 	HRESULT hr = D3DState.currentMatrixStack->pop( );
 	if( FAILED( hr ) ) D3DGlobal.lastError = hr;
@@ -350,6 +358,7 @@ OPENGL_API void WINAPI glPopMatrix( void )
 }
 OPENGL_API void WINAPI glPushMatrix( void )
 {
+	QTRACE_GL( "PushMatrix" );
 	if( !D3DState.currentMatrixStack ) return;
 	HRESULT hr = D3DState.currentMatrixStack->push( );
 	if( FAILED( hr ) ) D3DGlobal.lastError = hr;

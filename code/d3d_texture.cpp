@@ -20,6 +20,7 @@
 ***************************************************************************/
 #include "d3d_wrapper.hpp"
 #include "d3d_global.hpp"
+#include "d3d_trace.hpp"
 #include "d3d_state.hpp"
 #include "d3d_utils.hpp"
 #include "d3d_object.hpp"
@@ -1110,6 +1111,7 @@ OPENGL_API void WINAPI glPrioritizeTextures( GLsizei n, const GLuint *textures, 
 }
 OPENGL_API void WINAPI glBindTexture( GLenum target, GLuint texture )
 {
+	QTRACE_GL( "BindTexture(0x%x, %u) tmu=%d", target, texture, D3DState.TextureState.currentTMU ); qtrace_bind( texture );
 	int targetIndex = UTIL_GLTextureTargettoInternalIndex( target );
 	if (targetIndex < 0 || targetIndex >= D3D_TEXTARGET_MAX) {
 		D3DGlobal.lastError = E_INVALIDARG;
