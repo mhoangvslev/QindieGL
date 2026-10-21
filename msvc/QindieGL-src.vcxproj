@@ -152,12 +152,12 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(ProjectDir)..\bin\$(Configuration)\
-copy $(TargetPath) $(ProjectDir)..\bin\$(Configuration)\$(TargetFileName)
+      <Command>if not exist "$(ProjectDir)..\bin\$(Configuration)\" mkdir "$(ProjectDir)..\bin\$(Configuration)\"
+copy "$(TargetPath)" "$(ProjectDir)..\bin\$(Configuration)\$(TargetFileName)"
 
-copy $(TargetDir)$(TargetName).pdb $(ProjectDir)..\bin\$(Configuration)\$(TargetName).pdb
+copy "$(TargetDir)$(TargetName).pdb" "$(ProjectDir)..\bin\$(Configuration)\$(TargetName).pdb"
 
-copy $(TargetDir)$(ProjectName).ini $(ProjectDir)..\bin\$(Configuration)\$(ProjectName).ini</Command>
+copy "$(TargetDir)$(ProjectName).ini" "$(ProjectDir)..\bin\$(Configuration)\$(ProjectName).ini"</Command>
     </PostBuildEvent>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
@@ -236,12 +236,12 @@ copy $(TargetDir)$(ProjectName).ini $(ProjectDir)..\bin\$(Configuration).$(Platf
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(ProjectDir)..\bin\$(Configuration)\
-copy $(TargetPath) $(ProjectDir)..\bin\$(Configuration)\$(TargetFileName)
+      <Command>if not exist "$(ProjectDir)..\bin\$(Configuration)\" mkdir "$(ProjectDir)..\bin\$(Configuration)\"
+copy "$(TargetPath)" "$(ProjectDir)..\bin\$(Configuration)\$(TargetFileName)"
 
-copy $(TargetDir)$(TargetName).pdb $(ProjectDir)..\bin\$(Configuration)\$(TargetName).pdb
+copy "$(TargetDir)$(TargetName).pdb" "$(ProjectDir)..\bin\$(Configuration)\$(TargetName).pdb"
 
-copy $(TargetDir)$(ProjectName).ini $(ProjectDir)..\bin\$(Configuration)\$(ProjectName).ini</Command>
+copy "$(TargetDir)$(ProjectName).ini" "$(ProjectDir)..\bin\$(Configuration)\$(ProjectName).ini"</Command>
     </PostBuildEvent>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
@@ -328,12 +328,12 @@ copy $(TargetDir)$(ProjectName).ini $(ProjectDir)..\bin\$(Configuration).$(Platf
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(ProjectDir)..\bin\$(Configuration)\
-copy $(TargetPath) $(ProjectDir)..\bin\$(Configuration)\$(TargetFileName)
+      <Command>if not exist "$(ProjectDir)..\bin\$(Configuration)\" mkdir "$(ProjectDir)..\bin\$(Configuration)\"
+copy "$(TargetPath)" "$(ProjectDir)..\bin\$(Configuration)\$(TargetFileName)"
 
-copy $(TargetDir)$(TargetName).pdb $(ProjectDir)..\bin\$(Configuration)\$(TargetName).pdb
+copy "$(TargetDir)$(TargetName).pdb" "$(ProjectDir)..\bin\$(Configuration)\$(TargetName).pdb"
 
-copy $(TargetDir)$(ProjectName).ini $(ProjectDir)..\bin\$(Configuration)\$(ProjectName).ini</Command>
+copy "$(TargetDir)$(ProjectName).ini" "$(ProjectDir)..\bin\$(Configuration)\$(ProjectName).ini"</Command>
     </PostBuildEvent>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
