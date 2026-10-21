@@ -20,6 +20,7 @@
 ***************************************************************************/
 #include "d3d_wrapper.hpp"
 #include "d3d_global.hpp"
+#include "d3d_trace.hpp"
 #include "d3d_state.hpp"
 #include "d3d_utils.hpp"
 #include "d3d_immediate.hpp"
@@ -970,6 +971,7 @@ OPENGL_API HGLRC WINAPI wrap_wglCreateContext( HDC hdc )
 	D3DGlobal.settings.drawcallFastPath = D3DGlobal_GetRegistryValue( "DrawCallFastPath", "Settings", 0 );
 	D3DGlobal.settings.texcoordFix = D3DGlobal_GetRegistryValue( "TexCoordFix", "Settings", 0 );
 	D3DGlobal.settings.useSSE = D3DGlobal_GetRegistryValue( "UseSSE", "Settings", 0 );
+	qtrace_init();
 
 	//Note: remixapi also read in D3DGlobal_InitializeDirect3D above
 	D3DGlobal.settings.game.remixapi = D3DGlobal_ReadGameConf( "remixapi" );
@@ -1486,6 +1488,7 @@ OPENGL_API BOOL WINAPI wrap_wglSwapBuffers( HDC )
 			}
 		}
 
+		qtrace_frame_end();
 		matrix_detect_frame_ended();
 #ifndef QINDIEGLSRC_NO_REMIX
 		hook_frame_ended();

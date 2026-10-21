@@ -20,6 +20,7 @@
 ***************************************************************************/
 #include "d3d_wrapper.hpp"
 #include "d3d_global.hpp"
+#include "d3d_trace.hpp"
 #include "d3d_state.hpp"
 #include "d3d_utils.hpp"
 #include "d3d_immediate.hpp"
@@ -238,6 +239,8 @@ void D3DIMBuffer :: End( )
 		if (FAILED(hr)) {
 			D3DGlobal.lastError = hr;
 		}
+
+		qtrace_draw( "IM", m_primitiveType, m_vertexCount );
 
 		switch ( m_primitiveType )
 		{
@@ -1228,6 +1231,7 @@ OPENGL_API void WINAPI glVertex4sv( const GLshort *v )
 //=========================================
 OPENGL_API void WINAPI glBegin( GLenum mode )
 {
+	QTRACE_GL( "Begin(0x%x)", mode );
 	D3DState_Check( );
 	D3DState_AssureBeginScene( );
 	assert( D3DGlobal.pIMBuffer != NULL );
@@ -1236,6 +1240,7 @@ OPENGL_API void WINAPI glBegin( GLenum mode )
 
 OPENGL_API void WINAPI glEnd( )
 {
+	QTRACE_GL( "End" );
 	assert( D3DGlobal.pIMBuffer != NULL );
 	D3DGlobal.pIMBuffer->End( );
 	D3DState.CurrentState.isSet.all = 0;

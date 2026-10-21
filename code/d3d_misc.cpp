@@ -20,6 +20,7 @@
 ***************************************************************************/
 #include "d3d_wrapper.hpp"
 #include "d3d_global.hpp"
+#include "d3d_trace.hpp"
 #include "d3d_state.hpp"
 #include "d3d_utils.hpp"
 #include "d3d_matrix_stack.hpp"
@@ -103,6 +104,7 @@ OPENGL_API void WINAPI glDepthFunc( GLenum func )
 }
 OPENGL_API void WINAPI glDepthMask( GLboolean flag )
 {
+	QTRACE_GL( "DepthMask(%d)", (int)flag );
 	if (D3DState.DepthBufferState.depthWriteMask != flag) {
 		D3DState.DepthBufferState.depthWriteMask = flag;
 		if( !D3DGlobal.settings.game.depthOffDisablesWrites ||
@@ -219,6 +221,7 @@ OPENGL_API void WINAPI glFinish()
 }
 OPENGL_API void WINAPI glViewport( GLint x, GLint y, GLsizei width, GLsizei height )
 {
+	QTRACE_GL( "Viewport(%d, %d, %d, %d)", x, y, width, height );
 	// translate from OpenGL bottom-left to D3D top-left
 	y = D3DGlobal.hCurrentMode.Height - (height + y);
 

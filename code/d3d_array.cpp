@@ -20,6 +20,7 @@
 ***************************************************************************/
 #include "d3d_wrapper.hpp"
 #include "d3d_global.hpp"
+#include "d3d_trace.hpp"
 #include "d3d_state.hpp"
 #include "d3d_utils.hpp"
 #include "d3d_immediate.hpp"
@@ -806,6 +807,8 @@ void D3DVABuffer :: DrawPrimitive()
 		return;
 
 	HRESULT hr;
+
+	qtrace_draw( "DIP", m_primitiveType, m_primitiveIndexCount );
 
 	switch (m_primitiveType)
 	{
@@ -1638,6 +1641,7 @@ static void internal_DrawElements( GLenum mode, GLuint start, GLuint end, GLsize
 
 OPENGL_API void WINAPI glDrawArrays( GLenum mode, GLint first, GLsizei count )
 {
+	QTRACE_GL( "DrawArrays(0x%x, %d, %d)", mode, first, count );
 	Consider_Active_VBO();
 	D3DState_Check();
 	D3DState_AssureBeginScene();
@@ -1645,6 +1649,7 @@ OPENGL_API void WINAPI glDrawArrays( GLenum mode, GLint first, GLsizei count )
 }
 OPENGL_API void WINAPI glDrawElements( GLenum mode, GLsizei count, GLenum type, const GLvoid *indices )
 {
+	QTRACE_GL( "DrawElements(0x%x, %d, 0x%x, %p)", mode, count, type, indices );
 	Consider_Active_VBO();
 	D3DState_Check();
 	D3DState_AssureBeginScene();
