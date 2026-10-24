@@ -1434,6 +1434,11 @@ OPENGL_API BOOL WINAPI wrap_wglSwapBuffers( HDC )
 		return TRUE;
 	}
 
+	// A frame that issued no draw call (e.g. the engine's main menu while an external UI owns the screen) still has to be presented: overlays that hook
+	// Present (codui) only run when a frame is presented, so skipping it froze them until something drew again.
+	if (!D3DGlobal.sceneBegan)
+		D3DState_AssureBeginScene();
+
 	if (D3DGlobal.sceneBegan)
 	{
 		// see do we need to reset the viewport as D3D restricts present to the client viewport
