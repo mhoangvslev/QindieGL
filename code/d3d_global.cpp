@@ -818,7 +818,9 @@ static bool D3DGlobal_SetupPresentParams( int width, int height, int bpp, BOOL w
 
 	D3DGlobal.hPresentParams.FullScreen_RefreshRateInHz = D3DGlobal.hCurrentMode.RefreshRate;
 	D3DGlobal.hPresentParams.Windowed = windowed;
-	D3DGlobal.hPresentParams.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
+	// A windowed device is composed by the desktop window manager, which already syncs to the display: asking the driver for a vsync interval on top made every Present block ~28 ms on a 240 Hz
+	// display with the GPU idle (measured: 0 bots 25 fps -> 141 fps, 64 bots 12 -> 22 fps). Only a fullscreen device presents with the vsync interval.
+	D3DGlobal.hPresentParams.PresentationInterval = windowed ? D3DPRESENT_INTERVAL_IMMEDIATE : D3DPRESENT_INTERVAL_ONE;
 
 	// request 1 backbuffer
 	D3DGlobal.hPresentParams.BackBufferCount = 1;
