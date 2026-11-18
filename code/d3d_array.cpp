@@ -166,8 +166,10 @@ static void D3DVA_CopyArrayToUBytes( const D3DVAInfo *pVAInfo, int index, GLubyt
 // values will consume a lot of memory.
 //---------------------------------------------------
 
-static const GLsizei VABuffer_VB_Grow_Size = 256;
-static const GLsizei VABuffer_IB_Grow_Size = 256;
+// Minimum buffer sizes: big enough that many draws are appended (NOOVERWRITE) before the buffer wraps (DISCARD). A DISCARD per draw made the driver rename a buffer for every draw call and the
+// main thread then waited inside Lock (measured: ~12 % of the main thread in a 64-player match, NtWaitForAlertByThreadId under D3DVABuffer::Lock).
+static const GLsizei VABuffer_VB_Grow_Size = 8192;
+static const GLsizei VABuffer_IB_Grow_Size = 32768;
 
 D3DVABuffer :: D3DVABuffer()
 {
@@ -176,7 +178,12 @@ D3DVABuffer :: D3DVABuffer()
 	m_lockFirst = 0;
 	m_lockCount = 0;
 	m_swapFrame = 0;
+	m_vbStartBytes = 0;
+	m_ibStart = 0;
 	for (int i = 0; i < c_MaxSwapFrame; ++i) {
+		m_vbHead[i] = 0;
+		m_ibHead[0][i] = 0;
+		m_ibHead[1][i] = 0;
 		m_pVertexBuffer[i] = nullptr;
 		m_pIndexBuffer[0][i] = nullptr;
 		m_pIndexBuffer[1][i] = nullptr;
@@ -218,6 +225,7 @@ void D3DVABuffer :: SetMinimumVertexBufferSize( int numVerts )
 		m_pVertexBuffer[m_swapFrame]->Release();
 
 	m_vbAllocSize[m_swapFrame] = QINDIEGL_MAX( VABuffer_VB_Grow_Size, numVerts ) * m_vertexSize;
+	m_vbHead[m_swapFrame] = 0;
 	HRESULT hr = D3DGlobal.pDevice->CreateVertexBuffer( m_vbAllocSize[m_swapFrame] * sizeof(GLfloat), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 
 				 									    0, D3DPOOL_DEFAULT, &m_pVertexBuffer[m_swapFrame], nullptr );
 
@@ -242,6 +250,7 @@ int D3DVABuffer :: SetMinimumIndexBufferSize( int numIndices )
 		m_pIndexBuffer[currentIndexBuffer][m_swapFrame]->Release();
 
 	m_ibAllocSize[currentIndexBuffer][m_swapFrame] = QINDIEGL_MAX( VABuffer_IB_Grow_Size, numIndices ) * m_indexSize;
+	m_ibHead[currentIndexBuffer][m_swapFrame] = 0;
 	HRESULT hr = D3DGlobal.pDevice->CreateIndexBuffer( m_ibAllocSize[currentIndexBuffer][m_swapFrame], D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, 
 													   currentIndexBuffer ? D3DFMT_INDEX32 : D3DFMT_INDEX16,
 				 									   D3DPOOL_DEFAULT, &m_pIndexBuffer[currentIndexBuffer][m_swapFrame], nullptr );
@@ -358,12 +367,21 @@ void D3DVABuffer :: Lock( GLint first, GLint last )
 
 	//Lock vertex buffer
 	GLfloat *pLockedVertices = nullptr;
-	HRESULT hr = m_pVertexBuffer[m_swapFrame]->Lock( 0, count * m_vertexSize * sizeof(GLfloat), 
-													 (void**)&pLockedVertices, D3DLOCK_DISCARD );
+	const GLsizei vbNeed = count * m_vertexSize;											// floats
+	GLsizei vbHead = ((m_vbHead[m_swapFrame] + m_vertexSize - 1) / m_vertexSize) * m_vertexSize;	// keep the vertex start a whole number of strides into the buffer
+	DWORD vbFlags = D3DLOCK_NOOVERWRITE;													// append behind what earlier draws wrote (the GPU may still be reading that)
+	if (vbHead + vbNeed > m_vbAllocSize[m_swapFrame]) {
+		vbHead = 0;
+		vbFlags = D3DLOCK_DISCARD;															// full: a fresh buffer
+	}
+	HRESULT hr = m_pVertexBuffer[m_swapFrame]->Lock( vbHead * sizeof(GLfloat), vbNeed * sizeof(GLfloat), 
+													 (void**)&pLockedVertices, vbFlags );
 	if (FAILED(hr)) {
 		D3DGlobal.lastError = hr;
 		return;
 	}
+	m_vbHead[m_swapFrame] = vbHead + vbNeed;
+	m_vbStartBytes = vbHead * sizeof(GLfloat);
 
 #define FAST_PATH_SAMPLERS 3
 	int fast_path_abort_reason = 0;
@@ -665,7 +683,7 @@ FAST_PATH_CHECK_ABORT:
 	m_pVertexBuffer[m_swapFrame]->Unlock();
 
 	//Set stream source
-	hr = D3DGlobal.pDevice->SetStreamSource( 0, m_pVertexBuffer[m_swapFrame], 0, m_vertexSize * sizeof(GLfloat) );
+	hr = D3DGlobal.pDevice->SetStreamSource( 0, m_pVertexBuffer[m_swapFrame], m_vbStartBytes, m_vertexSize * sizeof(GLfloat) );
 	if (FAILED(hr)) {
 		D3DGlobal.lastError = hr;
 		return;
@@ -723,11 +741,20 @@ void D3DVABuffer :: SetIndices( GLenum mode, GLuint start, GLuint end, GLsizei c
 
 	//Lock index buffer
 	GLvoid *pLockedIndices = nullptr;
-	HRESULT hr = m_pIndexBuffer[currentIndexBuffer][m_swapFrame]->Lock( 0, m_primitiveIndexCount * m_indexSize, (void**)&pLockedIndices, D3DLOCK_DISCARD );
+	const GLsizei ibNeed = m_primitiveIndexCount * m_indexSize;							// bytes
+	GLsizei ibHead = m_ibHead[currentIndexBuffer][m_swapFrame];
+	DWORD ibFlags = D3DLOCK_NOOVERWRITE;
+	if (ibHead + ibNeed > m_ibAllocSize[currentIndexBuffer][m_swapFrame]) {
+		ibHead = 0;
+		ibFlags = D3DLOCK_DISCARD;
+	}
+	HRESULT hr = m_pIndexBuffer[currentIndexBuffer][m_swapFrame]->Lock( ibHead, ibNeed, (void**)&pLockedIndices, ibFlags );
 	if (FAILED(hr)) {
 		D3DGlobal.lastError = hr;
 		return;
 	}
+	m_ibHead[currentIndexBuffer][m_swapFrame] = ibHead + ibNeed;
+	m_ibStart = ibHead / m_indexSize;
 
 	GLuint minVertexIndex;
 	GLuint maxVertexIndex;
@@ -813,33 +840,33 @@ void D3DVABuffer :: DrawPrimitive()
 	switch (m_primitiveType)
 	{
 	case GL_LINES:
-		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_LINELIST, -m_lockFirst, 0, m_lockCount, 0, m_primitiveIndexCount / 2);
+		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_LINELIST, -m_lockFirst, 0, m_lockCount, m_ibStart, m_primitiveIndexCount / 2);
 		break;
 
 	case GL_LINE_STRIP:
 	case GL_LINE_LOOP:
-		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_LINESTRIP, -m_lockFirst, 0, m_lockCount, 0, m_primitiveIndexCount - 1);
+		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_LINESTRIP, -m_lockFirst, 0, m_lockCount, m_ibStart, m_primitiveIndexCount - 1);
 		break;
 
 	case GL_QUADS:
 		// quads are converted to triangles upon lock
 	case GL_TRIANGLES:
 		// D3DPT_TRIANGLELIST models GL_TRIANGLES when used for either a single triangle or multiple triangles
-		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, -m_lockFirst, 0, m_lockCount, 0, m_primitiveIndexCount / 3);
+		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, -m_lockFirst, 0, m_lockCount, m_ibStart, m_primitiveIndexCount / 3);
 		break;
 
 	case GL_QUAD_STRIP:
 		// quadstrip is EXACT the same as tristrip
 	case GL_TRIANGLE_STRIP:
 		// regular tristrip
-		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, -m_lockFirst, 0, m_lockCount, 0, m_primitiveIndexCount - 2);
+		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLESTRIP, -m_lockFirst, 0, m_lockCount, m_ibStart, m_primitiveIndexCount - 2);
 		break;
 
 	case GL_POLYGON:
 		// a GL_POLYGON has the same vertex layout and order as a trifan, and can be used interchangably in OpenGL
 	case GL_TRIANGLE_FAN:
 		// regular trifan
-		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLEFAN, -m_lockFirst, 0, m_lockCount, 0, m_primitiveIndexCount - 2);
+		hr = D3DGlobal.pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLEFAN, -m_lockFirst, 0, m_lockCount, m_ibStart, m_primitiveIndexCount - 2);
 		break;
 		
 	default:
