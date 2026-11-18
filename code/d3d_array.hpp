@@ -69,6 +69,11 @@ private:
 	GLenum						m_primitiveType;
 	GLsizei						m_primitiveIndexCount;
 	GLint						m_swapFrame;
+	// Sub-allocation (D3DLOCK_NOOVERWRITE): every draw appends to its buffer instead of discarding it; DISCARD only when the buffer is full (see Lock / SetIndices).
+	GLsizei						m_vbHead[c_MaxSwapFrame];		// next free float of each vertex buffer
+	GLsizei						m_ibHead[2][c_MaxSwapFrame];	// next free byte of each index buffer
+	GLsizei						m_vbStartBytes;				// where this draw's vertices start in the vertex buffer (stream offset)
+	GLsizei						m_ibStart;						// where this draw's indices start in the index buffer (in indices)
 };
 
 #endif //QINDIEGL_D3D_ARRAY_H
